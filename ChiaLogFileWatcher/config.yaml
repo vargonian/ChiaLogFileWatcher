@@ -1,6 +1,6 @@
 # This is a list of log files that the application will watch for proofs.
 LogFilePaths:
-- C:\fake\fakelogfile.log
+- C:\temp\fakelogfile.log
 
 # This string should point to the path to the alert audio file to play when a proof is found.
 AlertAudioFilePath: air-raid.wav

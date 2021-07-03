@@ -26,7 +26,7 @@
             this.lastWriteTime = this.fileInfo.LastWriteTime;
             this.LineCount = this.GetLineCount();
 
-            this.timer = new Timer(TimeSpan.FromSeconds(2).TotalMilliseconds);
+            this.timer = new Timer(TimeSpan.FromMinutes(1).TotalMilliseconds);
             this.timer.Elapsed += this.OnTimerFired;
             this.timer.AutoReset = true;
             this.timer.Enabled = true;
