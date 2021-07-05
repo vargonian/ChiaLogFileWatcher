@@ -5,6 +5,9 @@
     public class Config
     {
         public List<string> LogFilePaths { get; set; }
-        public string AlertAudioFilePath { get; set; }
+        public double CheckIntervalMinutes { get; set; }
+        public string ProofFoundAudioFilePath { get; set; }
+        public string FarmerStalledAudioFilePath { get; set; }
+        public double ProofsCheckTimeoutMinutes { get; set; }
     }
 }

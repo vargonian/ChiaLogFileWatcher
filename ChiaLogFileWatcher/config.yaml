@@ -2,5 +2,14 @@
 LogFilePaths:
 - C:\temp\fakelogfile.log
 
+# A number indicating how often the log files are checked.
+CheckIntervalMinutes: 1.0
+
+# If no proof checks have occurred in this amount of time
+ProofsCheckTimeoutMinutes: 5.0
+
 # This string should point to the path to the alert audio file to play when a proof is found.
-AlertAudioFilePath: air-raid.wav
+ProofFoundAudioFilePath: air-raid.wav
+
+# This string should point to the path to the alert audio file to play when the farmer has unexpectedly stalled.
+FarmerStalledAudioFilePath: stall-warning.wav

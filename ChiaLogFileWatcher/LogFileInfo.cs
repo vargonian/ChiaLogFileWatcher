@@ -9,37 +9,59 @@
     {
         private readonly FileInfo fileInfo;
         private readonly Timer timer;
+        private readonly List<MissingStringTimeout> missingStringTimeouts;
 
         private Func<string, bool> stringMatcherFunc;
         private Action<string> responseAction;
         private DateTime lastWriteTime;
         private bool isDisposed;
 
-        public LogFileInfo(string filePath) : this(new FileInfo(filePath))
+        public LogFileInfo(string filePath, TimeSpan checkInterval) : this(new FileInfo(filePath), checkInterval)
         {
         }        
 
-        public LogFileInfo(FileInfo fileInfo)
+        public LogFileInfo(FileInfo fileInfo, TimeSpan checkInterval)
         {
             this.fileInfo = fileInfo;
             
             this.lastWriteTime = this.fileInfo.LastWriteTime;
             this.LineCount = this.GetLineCount();
 
-            this.timer = new Timer(TimeSpan.FromMinutes(1).TotalMilliseconds);
+            this.timer = new Timer(checkInterval.TotalMilliseconds);
             this.timer.Elapsed += this.OnTimerFired;
             this.timer.AutoReset = true;
             this.timer.Enabled = true;
+
+            this.missingStringTimeouts = new List<MissingStringTimeout>();
         }
 
         public event Action<FileInfo, IEnumerable<string>> LinesAdded;
 
         public int LineCount { get; private set; }
 
+        public string FilePath
+        {
+            get
+            {
+                return this.fileInfo.FullName;
+            }
+        }
+
         public void WatchFor(Func<string, bool> stringMatcher, Action<string> responseAction)
         {
             this.stringMatcherFunc = stringMatcher;
             this.responseAction = responseAction;
+        }
+
+        /// <summary>
+        /// Ensures that a string pattern appears within a given duration / frequency.
+        /// </summary>
+        /// <param name="stringMatcher">A Func from which to match an output line.</param>
+        /// <param name="timeoutDuration">The TimeSpan after which the timeoutReachedAction will be triggered.</param>
+        /// <param name="timeoutReachedAction">An Action to trigger if the specified pattern matcher isn't satisfied withing timeoutDuration.</param>
+        public void WatchForMissing(Func<string, bool> stringMatcher, TimeSpan timeoutDuration, Action timeoutReachedAction)
+        {
+            this.missingStringTimeouts.Add(new MissingStringTimeout(stringMatcher, timeoutDuration, timeoutReachedAction));
         }
 
         public void Dispose() => this.Dispose(true);
@@ -90,6 +112,21 @@
                 }
 
                 this.LinesAdded?.Invoke(this.fileInfo, newLines);
+            }
+
+            foreach (MissingStringTimeout missingStringTimeoutInfo in this.missingStringTimeouts)
+            {
+                if (missingStringTimeoutInfo.TimeoutOccurred)
+                {
+                    // Do not handle the same timeout more than once.
+                    continue;
+                }
+
+                if (missingStringTimeoutInfo.IsTimeoutReached)
+                {
+                    missingStringTimeoutInfo.TimeoutOccurred = true;
+                    missingStringTimeoutInfo.TimeoutReachedAction?.Invoke();
+                }
             }
         }
 

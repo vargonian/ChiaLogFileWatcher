@@ -9,10 +9,14 @@
 
   <ItemGroup>
     <None Remove="air-raid.wav" />
+    <None Remove="stall-warning.wav" />
   </ItemGroup>
   
   <ItemGroup>
     <Content Include="air-raid.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="stall-warning.wav">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

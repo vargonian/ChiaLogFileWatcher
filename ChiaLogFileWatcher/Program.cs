@@ -28,9 +28,20 @@
 
             Parallel.ForEach(config.LogFilePaths, logFilePath =>
             {
-                using (LogFileInfo logFileInfo = new LogFileInfo(new FileInfo(logFilePath)))
+                using (LogFileInfo logFileInfo = new LogFileInfo(new FileInfo(logFilePath), TimeSpan.FromMinutes(config.CheckIntervalMinutes)))
                 {
-                    logFileInfo.WatchFor(ContainsFoundProof, (matchingOutputLine) => { Console.WriteLine(matchingOutputLine); soundPlayer.Play(config.AlertAudioFilePath); });
+                    logFileInfo.WatchFor(ContainsFoundProof, (matchingOutputLine) => 
+                    { 
+                        Console.WriteLine("Matching line: " + matchingOutputLine);
+                        soundPlayer.Play(config.ProofFoundAudioFilePath); 
+                    });
+
+                    logFileInfo.WatchForMissing(ContainsProofCheck, TimeSpan.FromMinutes(config.ProofsCheckTimeoutMinutes), () =>
+                    {
+                        Console.WriteLine($"{GetLogTimestamp()} Farmer Stalled (no proof check in {config.ProofsCheckTimeoutMinutes} minutes): {logFileInfo.FilePath}");
+                        soundPlayer.Play(config.FarmerStalledAudioFilePath);
+                    });
+
                     while (true)
                     {
                         Thread.Sleep(10);
@@ -41,9 +52,20 @@
             return 0;
         }
 
+        private static string GetLogTimestamp()
+        {
+            return DateTime.Now.ToString("yyyy’-‘MM’-‘dd’T’HH’:’mm’:’ss.fffffffK");
+        }
+
         private static bool ContainsFoundProof(string outputLine)
         {
             Match match = Regex.Match(outputLine, @"Found [1-9]+ proofs\.");
+            return match.Success;
+        }
+
+        private static bool ContainsProofCheck(string outputLine)
+        {
+            Match match = Regex.Match(outputLine, @"Found [0-9]+ proofs\.");
             return match.Success;
         }
 
@@ -64,9 +86,21 @@
 
             Config loadedConfig = deserializer.Deserialize<Config>(yamlText);
 
-            if (loadedConfig.AlertAudioFilePath == null)
+            if (loadedConfig.CheckIntervalMinutes < 0.016 || loadedConfig.CheckIntervalMinutes > 999)
             {
-                Console.WriteLine($"ERROR: No audio file path specified in {configFilePath}.");
+                Console.WriteLine($"ERROR: {nameof(loadedConfig.CheckIntervalMinutes)} must be between 0.016 and 999 (was {loadedConfig.CheckIntervalMinutes}).");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(loadedConfig.ProofFoundAudioFilePath))
+            {
+                Console.WriteLine($"ERROR: No {nameof(loadedConfig.ProofFoundAudioFilePath)} specified in {configFilePath}.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(loadedConfig.FarmerStalledAudioFilePath))
+            {
+                Console.WriteLine($"ERROR: No {nameof(loadedConfig.FarmerStalledAudioFilePath)} specified in {configFilePath}.");
                 return false;
             }
 
